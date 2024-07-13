@@ -6,7 +6,7 @@ from math import hypot
 import pyglet
 import time
 
-#Load sounds
+#Load soundss
 sound = pyglet.media.load("sound.m4a",streaming=False)
 left_sound = pyglet.media.load("left.m4a",streaming=False)
 right_sound = pyglet.media.load("right.m4a",streaming=False)
@@ -16,9 +16,9 @@ cv2.namedWindow("Primary Window", cv2.WINDOW_NORMAL)
 cv2.resizeWindow("Primary Window", 1280, 720)  # Resize the primary window
 
 # Create pop-up windows
-cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
-cv2.namedWindow("Virtual Keyboard", cv2.WINDOW_NORMAL)
-cv2.namedWindow("Board", cv2.WINDOW_NORMAL)
+# cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
+# cv2.namedWindow("Virtual Keyboard", cv2.WINDOW_NORMAL)
+# cv2.namedWindow("Board", cv2.WINDOW_NORMAL)
 
 cap = cv2.VideoCapture(0)
 board = np.zeros((200,1400),np.uint8)
@@ -113,8 +113,8 @@ def draw_menu():
     th_lines = 4 # thickness lines
     cv2.line(keyboard, (int(cols/2) - int(th_lines/2), 0),(int(cols/2) - int(th_lines/2), rows),
              (51, 51, 51), th_lines)
-    cv2.putText(keyboard, "LEFT", (80, 300), font, 6, (255, 255, 255), 5)
-    cv2.putText(keyboard, "RIGHT", (80 + int(cols/2), 300), font, 6, (255, 255, 255), 5)
+    cv2.putText(keyboard, "LEFT", (50, 300), font, 5, (255, 255, 255), 5)
+    cv2.putText(keyboard, "RIGHT", (50 + int(cols/2), 300), font, 5, (255, 255, 255), 5)
 
 
 def midpoint(p1,p2):
@@ -205,7 +205,7 @@ def get_gaze_ratio(eye_points, facial_landmarks):
 frames = 0
 letter_index = 0
 blinking_frames = 0
-frames_to_blink = 4
+frames_to_blink = 7
 frames_active_letter = 9
 blinked = False
 
@@ -219,16 +219,16 @@ keyboard_selection_frames = 0
 
 while(True):
     _ , frame = cap.read()
-#     frame = cv2.resize(frame, None, fx=0.5,fy=0.5)
+    # Resize the frame to fit into the combined image
+    frame = cv2.resize(frame, (480, 360))
     rows, cols, _ = frame.shape
     keyboard[:] = (26,26,26)
     frames += 1
-#     new_frame = np.zeros((500,500,3), np.uint8)
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 #     active_letter = keys_set_1[letter_index]
     
     # Draw a white space for loading bar
-    frame[rows - 50: rows, 0: cols] = (255, 255, 255)
+    frame[rows - 50: rows, 0: cols] = (150, 150, 150)
     
     if select_keyboard_menu is True:
         draw_menu()
@@ -375,21 +375,47 @@ while(True):
     percentage_blinking = blinking_frames / frames_to_blink
     loading_x = int(cols * percentage_blinking)
     cv2.rectangle(frame, (0, rows - 50), (loading_x, rows), (51, 51, 51), -1)
-    
-    cv2.moveWindow("Frame", 10, 30)  # Move the "Frame" window to (10, 30) position within the primary window
-    cv2.imshow("Frame", frame)
 
-    cv2.moveWindow("Virtual Keyboard", 10, 300)  # Move the "Virtual Keyboard" window to (10, 300) position
-    cv2.imshow("Virtual Keyboard", keyboard)
 
-    cv2.moveWindow("Board", 800, 30)  # Move the "Board" window to (800, 30) position
-    cv2.imshow("Board", board)
-    
-    
+    # # primary window is true then display thw windows inside the primary window
+    # cv2.moveWindow("Frame", 10, 30)  # Move the "Frame" window to (10, 30) position within the primary window
+    # cv2.imshow("Frame", frame)
+
+    # cv2.moveWindow("Virtual Keyboard", 10, 300)  # Move the "Virtual Keyboard" window to (10, 300) position
+    # cv2.imshow("Virtual Keyboard", keyboard)
+
+    # cv2.moveWindow("Board", 800, 30)  # Move the "Board" window to (800, 30) position
+    # cv2.imshow("Board", board)
+
+    # Create a combined image with all sub-windows
+    combined_image = np.zeros((720, 1280, 3), dtype=np.uint8)
+
+    # Calculate the position to center the video frame
+    video_x = int((1280 - 480) / 2)  # Calculate the x-coordinate to center the video frame
+    video_y = 10 # Calculate the y-coordinate to center the video frame
+
+    combined_image[video_y:video_y+360, video_x:video_x+480] = frame  # Centered Frame
+    keyboard_y = 400  # Set the y-coordinate to move the virtual keyboard up
+    combined_image[keyboard_y:keyboard_y+200, :1280] = cv2.resize(keyboard, (1280, 200))  # Virtual Keyboard resized
+
+    # Resize the board to fit the available width in combined_image and convert to 3-channel
+    board_resized = cv2.resize(board, (1280, 80))  # Resize board to fit within 1280 width
+    board_resized_color = cv2.cvtColor(board_resized, cv2.COLOR_GRAY2BGR)  # Convert grayscale to BGR
+
+    combined_image[640:720, :1280] = board_resized_color  # Board resized and converted to BGR
+
+    # Show the combined image in the primary window
+    cv2.imshow("Primary Window", combined_image)
+
+
     key = cv2.waitKey(1)
     if key == 27:
         break
-    
-
 cap.release()
-cv2.destroyAllWindows()  
+cv2.destroyAllWindows()
+
+
+
+
+
+
